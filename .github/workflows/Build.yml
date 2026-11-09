@@ -131,7 +131,7 @@ jobs:
           APK=$(ls app/build/outputs/apk/release/*.apk | head -n 1)
           cp "$APK" "${{ steps.ver.outputs.apk_name }}"
 
-      - name: Upload APK to existing Release (tag: MD3)
+      - name: Upload APK to existing Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
