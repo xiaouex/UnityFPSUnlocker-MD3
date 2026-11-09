@@ -7,6 +7,6 @@
 # 郑重承诺：保证0手工，纯科技！
 
 
-<img width="50%" height="50" alt="IMG_20261109_220910" src="https://github.com/user-attachments/assets/4102980a-7ef2-4521-82c3-bb1a218f366b" />
-<img width="50" height="50" alt="IMG_20261109_220917" src="https://github.com/user-attachments/assets/1f59b965-f330-478b-89e6-09308ac9a17d" />
+<img width="50%" height="50%" alt="IMG_20261109_220910" src="https://github.com/user-attachments/assets/4102980a-7ef2-4521-82c3-bb1a218f366b" />
+<img width="50%" height="50%" alt="IMG_20261109_220917" src="https://github.com/user-attachments/assets/1f59b965-f330-478b-89e6-09308ac9a17d" />
 
