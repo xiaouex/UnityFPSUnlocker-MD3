@@ -1,29 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Package visibility for the installed-game scan (Android 11+). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+        </intent>
+    </queries>
 
     <application
-        android:label="UnityFPSUnlocker"
+        android:label="@string/app_name"
         android:description="@string/xposed_description"
-        android:theme="@style/Theme.AppCompat"
+        android:theme="@style/Theme.UnityFPSUnlocker"
         android:supportsRtl="true"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        tools:targetApi="28">
+        android:roundIcon="@mipmap/ic_launcher_round">
 
+        <!-- Opened explicitly by LSPosed through the standard module-settings category. -->
         <activity
-            android:name=".SettingsActivity"
-            android:exported="true">
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS" />
+            </intent-filter>
+        </activity>
+
+        <!-- The only component shown in the launcher; disabled by the Home switch. -->
+        <activity-alias
+            android:name=".LauncherActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:targetActivity=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".PerAppSettingsActivity"
-            android:exported="true">
-        </activity>
+        </activity-alias>
 
     </application>
 

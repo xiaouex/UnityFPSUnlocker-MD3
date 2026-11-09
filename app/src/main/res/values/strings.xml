@@ -1,17 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="title_activity_settings">SettingsActivity</string>
+    <string name="app_name">Unity FPS Unlocker</string>
+    <string name="xposed_description">为 Unity IL2CPP 游戏提供帧率与分辨率调节的 Xposed 模块</string>
 
-    <!-- Preference Titles -->
-    <string name="setting_header">Module Settings</string>
+    <string name="tab_home">主页</string>
+    <string name="tab_config">配置</string>
 
-    <!-- Messages Preferences -->
-    <string name="package_name_title">package name</string>
-    <string name="per_app_setting_btn">per app settings</string>
-    <string name="delay_title">delay</string>
-    <string name="fps_title">fps</string>
-    <string name="scale_title">scale</string>
-    <string name="debug_title">mod_opcode</string>
-    <string name="display_mode_list">Display Mode List</string>
-    <string name="xposed_description">为unity-il2cpp提供在手机上设置FPS的模块</string>
+    <string name="module_status">模块状态</string>
+    <string name="status_active">已激活</string>
+    <string name="status_inactive">未激活</string>
+    <string name="status_active_desc">已连接 Xposed 服务，模块正在工作</string>
+    <string name="status_inactive_desc">未连接 Xposed 服务，请确认模块已在框架中启用</string>
 
+    <string name="installed_unity_games">已生效</string>
+    <string name="game_count_unit">款游戏</string>
+    <string name="scanning_short">正在读取作用域…</string>
+    <string name="scan_failed_short">读取失败</string>
+    <string name="scope_inactive_short">LSPosed 未连接</string>
+    <string name="scope_empty_short">未勾选作用域</string>
+    <string name="value_placeholder">—</string>
+
+    <string name="global_settings">全局设置</string>
+    <string name="global_settings_desc">未单独配置的游戏将使用以下设置</string>
+
+    <string name="fps_setting">帧率设置</string>
+    <string name="fps_suffix">FPS</string>
+    <string name="resolution_setting">分辨率设置</string>
+    <string name="resolution_suffix">×</string>
+    <string name="resolution_note">渲染倍率：1.0 为原生分辨率，-1 表示不修改</string>
+    <string name="opcode_setting">开启 op_code 注入</string>
+    <string name="delay_setting">延迟多久开始注入</string>
+    <string name="delay_suffix">秒</string>
+    <string name="auto_save_note">修改后自动保存</string>
+
+    <string name="hide_desktop_icon">隐藏桌面图标</string>
+    <string name="desktop_icon_hidden">桌面图标已隐藏，可从 LSPosed 打开</string>
+    <string name="desktop_icon_restored">桌面图标已恢复</string>
+    <string name="hide_desktop_icon_failed">设置失败，请重试</string>
+
+    <string name="config_title">游戏配置</string>
+    <string name="config_scanning">正在读取 LSPosed 作用域…</string>
+    <string name="config_empty">作用域内没有 Unity 游戏</string>
+    <string name="config_empty_desc">请在 LSPosed 中勾选 Unity 游戏的作用域后返回</string>
+    <string name="config_inactive">模块未激活</string>
+    <string name="config_inactive_desc">请先在 LSPosed 中启用模块并勾选作用域</string>
+    <string name="config_scope_empty">尚未勾选作用域</string>
+    <string name="config_scope_empty_desc">在 LSPosed 的模块作用域中勾选游戏后返回</string>
+    <string name="config_error">作用域读取失败</string>
+    <string name="config_error_desc">请重新打开模块后再试</string>
+
+    <string name="per_app_config">启用独立配置</string>
+    <string name="per_app_disabled_desc">关闭时使用全局设置</string>
+    <string name="per_app_enabled_desc">以下配置仅对此游戏生效</string>
+
+    <string name="per_game_fps">帧率</string>
+    <string name="per_game_resolution">分辨率</string>
+    <string name="per_game_delay">延迟多久开始注入</string>
+    <string name="per_game_opcode">op_code 注入</string>
+
+    <string name="error_fps">请输入大于 0 的整数</string>
+    <string name="error_delay">请输入不小于 0 的整数</string>
+    <string name="error_resolution">请输入大于 0 的倍率，或 -1</string>
+
+    <string name="cd_game_icon">游戏图标</string>
+    <string name="cd_module_status">模块状态</string>
 </resources>

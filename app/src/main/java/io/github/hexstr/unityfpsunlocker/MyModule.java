@@ -16,7 +16,7 @@ public class MyModule extends XposedModule {
     private static final String tag_ = "UnityFPSUnlocker";
 
     private int display_mode_id_ = -1;
-    private int delay_ = 5;
+    private int delay_ = 10;
     private int fps_ = 90;
     private boolean mod_opcode_ = true;
     private float scale_ = -1.0f;
@@ -48,7 +48,7 @@ public class MyModule extends XposedModule {
 
         if (settings != null) {
             display_mode_id_ = getIntPref(settings, "display_mode_id", -1);
-            delay_ = getIntPref(settings, "delay", 5);
+            delay_ = getIntPref(settings, "delay", 10);
             fps_ = getIntPref(settings, "fps", 90);
             mod_opcode_ = getBooleanPref(settings, "mod_opcode", true);
             scale_ = getFloatPref(settings, "scale", -1.0f);
