@@ -54,3 +54,26 @@ dependencies {
     compileOnly 'io.github.libxposed:api:102.0.0'
     implementation 'io.github.libxposed:service:102.0.0'
 }
+
+android {
+    def ksFile = rootProject.file("release.keystore")
+    def hasReleaseKey = ksFile.exists()
+
+    signingConfigs {
+        release {
+            if (hasReleaseKey) {
+                storeFile ksFile
+                storePassword System.getenv("KEYSTORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (hasReleaseKey) signingConfig signingConfigs.release
+        }
+    }
+}
+
