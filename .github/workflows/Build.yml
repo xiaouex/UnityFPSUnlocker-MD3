@@ -1,5 +1,7 @@
-name: Build Xposed module and publish to MD3 release
+name: Build Xposed Module (MD3)
 
+# 手动触发，或推送到 xposed 分支时触发
+# 注意：本文件必须放在 xposed 分支的 .github/workflows/ 目录下
 on:
   workflow_dispatch:
 
@@ -7,177 +9,104 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
 
-    env:
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-      ANDROID_HOME: /usr/local/lib/android/sdk
-
     steps:
-      - name: Checkout xposed branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Checkout zygisk_module branch to native-source
+      - name: Checkout zygisk_module branch
         uses: actions/checkout@v4
         with:
           ref: zygisk_module
-          path: native-source
-          persist-credentials: false
+          path: zygisk_module
 
-      - name: Set up Java 17
+      - name: Build libUnityFPSUnlocker.so (arm64-v8a / armeabi-v7a)
+        run: |
+          cd zygisk_module
+          NDK="${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_HOME}}"
+          echo "Using NDK: $NDK"
+
+          mkdir -p ../so_out/arm64-v8a ../so_out/armeabi-v7a
+
+          for ABI in arm64-v8a armeabi-v7a; do
+            echo "=== Building for $ABI ==="
+            cmake -B "build/$ABI" \
+              -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+              -DANDROID_ABI="$ABI" \
+              -DANDROID_PLATFORM=android-28 \
+              -DCMAKE_BUILD_TYPE=Release
+            cmake --build "build/$ABI" --parallel
+            find "build/$ABI" -name "libUnityFPSUnlocker.so" -exec cp {} "../so_out/$ABI/" \;
+          done
+
+          echo "=== Build results ==="
+          ls -R ../so_out
+
+      - name: Checkout xposed branch
+        uses: actions/checkout@v4
+        with:
+          ref: xposed
+          path: xposed
+
+      - name: Copy .so into xposed module
+        run: |
+          for ABI in arm64-v8a armeabi-v7a; do
+            mkdir -p "xposed/app/src/main/lib/$ABI"
+            cp "so_out/$ABI/libUnityFPSUnlocker.so" "xposed/app/src/main/lib/$ABI/"
+          done
+
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
-      - name: Install Android SDK packages non-interactively
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          SDKMANAGER="$(find "${ANDROID_SDK_ROOT}/cmdline-tools" \
-            -type f -path '*/bin/sdkmanager' -print -quit)"
-
-          if [[ -z "${SDKMANAGER}" ]]; then
-            echo "sdkmanager was not found under ${ANDROID_SDK_ROOT}/cmdline-tools" >&2
-            find "${ANDROID_SDK_ROOT}/cmdline-tools" -maxdepth 4 -type f -print >&2
-            exit 1
-          fi
-
-          echo "Using sdkmanager: ${SDKMANAGER}"
-
-          # 非交互接受 SDK licenses
-          yes | "${SDKMANAGER}" --sdk_root="${ANDROID_SDK_ROOT}" --licenses \
-            >/dev/null 2>&1 || true
-
-          # sdkmanager 的包名作为独立参数传入，不加 --install
-          "${SDKMANAGER}" --sdk_root="${ANDROID_SDK_ROOT}" \
-            "platforms;android-37" \
-            "build-tools;37.0.0" \
-            "cmake;3.22.1" \
-            "ndk;27.2.12479018"
-
-      - name: Build libUnityFPSUnlocker.so
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          NDK="${ANDROID_SDK_ROOT}/ndk/27.2.12479018"
-          ABSEIL_SRC="${RUNNER_TEMP}/abseil-cpp"
-          NATIVE_ROOT="${GITHUB_WORKSPACE}/native-source"
-
-          git clone --depth 1 --branch 20250127.1 https://github.com/abseil/abseil-cpp.git "${ABSEIL_SRC}"
-
-          for ABI in arm64-v8a armeabi-v7a; do
-            PREFIX="${RUNNER_TEMP}/absl-install/${ABI}"
-            BUILD_DIR="${RUNNER_TEMP}/absl-build/${ABI}"
-            NATIVE_BUILD_DIR="${RUNNER_TEMP}/native-build/${ABI}"
-
-            cmake -S "${ABSEIL_SRC}" -B "${BUILD_DIR}" \
-              -DCMAKE_TOOLCHAIN_FILE="${NDK}/build/cmake/android.toolchain.cmake" \
-              -DANDROID_ABI="${ABI}" \
-              -DANDROID_PLATFORM=android-28 \
-              -DANDROID_STL=c++_static \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-              -DABSL_PROPAGATE_CXX_STD=ON \
-              -DABSL_ENABLE_INSTALL=ON \
-              -DABSL_BUILD_TESTING=OFF
-
-            cmake --build "${BUILD_DIR}" --parallel 2
-            cmake --install "${BUILD_DIR}"
-
-            cmake -S "${NATIVE_ROOT}" -B "${NATIVE_BUILD_DIR}" \
-              -DCMAKE_TOOLCHAIN_FILE="${NDK}/build/cmake/android.toolchain.cmake" \
-              -DANDROID_ABI="${ABI}" \
-              -DANDROID_PLATFORM=android-28 \
-              -DANDROID_STL=c++_static \
-              -Dabsl_DIR="${PREFIX}/lib/cmake/absl" \
-              -DCMAKE_BUILD_TYPE=Release
-
-            cmake --build "${NATIVE_BUILD_DIR}" --parallel 2
-
-            SO_FILE="${NATIVE_ROOT}/libs/Release/${ABI}.so"
-            if [[ ! -f "${SO_FILE}" ]]; then
-              echo "Native library not found: ${SO_FILE}" >&2
-              find "${NATIVE_ROOT}" -type f -name '*.so' -print >&2
-              exit 1
-            fi
-
-            mkdir -p "${GITHUB_WORKSPACE}/app/src/main/lib/${ABI}"
-            cp "${SO_FILE}" "${GITHUB_WORKSPACE}/app/src/main/lib/${ABI}/libUnityFPSUnlocker.so"
-          done
-
-      - name: Decode release keystore from base64 secret
-        shell: bash
+      - name: Decode keystore
         env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          set -euo pipefail
-
-          if [[ -z "${KEYSTORE_BASE64}" ]]; then
-            echo "Missing secret: KEYSTORE_BASE64" >&2
-            exit 1
-          fi
-
-          printf '%s' "${KEYSTORE_BASE64}" | base64 --decode > release.keystore
-          test -s release.keystore
-
-      - name: Build signed release APK
-        shell: bash
-        env:
+          KEYSTORE_BASE64:   ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
         run: |
-          set -euo pipefail
+          echo "$KEYSTORE_BASE64" | base64 -d > xposed/release.keystore
+          echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
 
-          ./gradlew --no-daemon clean assembleRelease
+      - name: Build signed APK
+        run: |
+          cd xposed
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
 
-          APK_PATH="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' -print -quit)"
-          if [[ -z "${APK_PATH}" ]]; then
-            echo "Release APK was not produced" >&2
+      - name: Verify signature
+        run: |
+          BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)"
+          APK=$(find xposed/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "Verifying: $APK"
+          "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
+
+      - name: Read versionName and rename APK
+        id: ver
+        run: |
+          VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' xposed/app/build.gradle | head -n 1)
+          if [ -z "$VERSION" ]; then
+            echo "versionName not found in app/build.gradle" >&2
             exit 1
           fi
+          RELEASE_NAME="V${VERSION}-MD3"
+          APK=$(find xposed/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          APK_NAME="UnityFPSUnlocker-${RELEASE_NAME}.apk"
+          cp "$APK" "$APK_NAME"
+          echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
 
-          mkdir -p release-artifacts
-          cp "${APK_PATH}" release-artifacts/UnityFPSUnlocker-Xposed.apk
-
-          VERSION_NAME="$(grep -m1 'versionName' app/build.gradle | sed -E 's/.*versionName *= *"([^"]+)".*/\1/')"
-          if [[ -z "${VERSION_NAME}" ]]; then
-            echo "Could not parse versionName from app/build.gradle" >&2
-            exit 1
-          fi
-
-          echo "VERSION_NAME=${VERSION_NAME}" >> "${GITHUB_ENV}"
-          echo "RELEASE_TITLE=V${VERSION_NAME}-MD3" >> "${GITHUB_ENV}"
-
-      - name: Publish to existing MD3 tag as GitHub Release
-        shell: bash
+      - name: Upload to MD3 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: MD3
+          name: ${{ steps.ver.outputs.release_name }}
+          files: ${{ steps.ver.outputs.apk_name }}
+          overwrite_files: true
+          make_latest: true
         env:
-          GH_TOKEN: ${{ github.token }}
-          TAG_NAME: MD3
-        run: |
-          set -euo pipefail
-
-          git fetch --force origin "refs/tags/${TAG_NAME}:refs/tags/${TAG_NAME}" || true
-          if ! git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
-            echo "Tag ${TAG_NAME} does not exist. Please create the MD3 tag manually first." >&2
-            exit 1
-          fi
-
-          APK_FILE="release-artifacts/UnityFPSUnlocker-Xposed.apk"
-          NOTES="Automated signed Xposed module release built from xposed branch. Native libraries compiled from zygisk_module branch."
-
-          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
-            gh release edit "${TAG_NAME}" --title "${RELEASE_TITLE}" --notes "${NOTES}"
-            gh release upload "${TAG_NAME}" "${APK_FILE}" --clobber
-          else
-            gh release create "${TAG_NAME}" "${APK_FILE}" \
-              --title "${RELEASE_TITLE}" \
-              --notes "${NOTES}" \
-              --verify-tag
-          fi
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
