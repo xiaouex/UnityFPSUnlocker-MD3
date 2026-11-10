@@ -80,8 +80,8 @@ jobs:
       - name: Checkout xposed branch
         uses: actions/checkout@v4
         with:
-          ref: xposed
-          path: xposed
+          ref: test
+          path: test
 
       - name: Copy .so into xposed module
         run: |
