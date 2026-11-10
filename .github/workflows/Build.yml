@@ -38,28 +38,29 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p "${ANDROID_SDK_ROOT}"
-          ls -la "${ANDROID_SDK_ROOT}" || true
+          SDKMANAGER="$(find "${ANDROID_SDK_ROOT}/cmdline-tools" \
+            -type f -path '*/bin/sdkmanager' -print -quit)"
 
-          SDKMANAGER="${ANDROID_SDK_ROOT}/cmdline-tools/16.0/bin/sdkmanager"
-
-          if [[ ! -x "${SDKMANAGER}" ]]; then
-            echo "SDKMANAGER not found at ${SDKMANAGER}" >&2
-            echo "Installed cmdline-tools path under /usr/local/lib/android/sdk/cmdline-tools/16.0" >&2
-            find /usr/local/lib/android/sdk -maxdepth 3 -type f -name sdkmanager 2>/dev/null | head >&2
+          if [[ -z "${SDKMANAGER}" ]]; then
+            echo "sdkmanager was not found under ${ANDROID_SDK_ROOT}/cmdline-tools" >&2
+            find "${ANDROID_SDK_ROOT}/cmdline-tools" -maxdepth 4 -type f -print >&2
             exit 1
           fi
 
-          yes | "${SDKMANAGER}" --sdk_root="${ANDROID_SDK_ROOT}" --licenses >/dev/null 2>&1 || true
+          echo "Using sdkmanager: ${SDKMANAGER}"
 
-          # 安装需要的平台/NDK/CMake
-          "${SDKMANAGER}" --sdk_root="${ANDROID_SDK_ROOT}" --install \
+          # 非交互接受 SDK licenses
+          yes | "${SDKMANAGER}" --sdk_root="${ANDROID_SDK_ROOT}" --licenses \
+            >/dev/null 2>&1 || true
+
+          # sdkmanager 的包名作为独立参数传入，不加 --install
+          "${SDKMANAGER}" --sdk_root="${ANDROID_SDK_ROOT}" \
             "platforms;android-37" \
             "build-tools;37.0.0" \
             "cmake;3.22.1" \
             "ndk;27.2.12479018"
 
-      - name: Build libUnityFPSUnlocker.so for arm64-v8a and armeabi-v7a
+      - name: Build libUnityFPSUnlocker.so
         shell: bash
         run: |
           set -euo pipefail
