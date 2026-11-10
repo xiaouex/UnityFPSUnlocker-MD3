@@ -15,7 +15,7 @@ import io.github.libxposed.api.XposedModule;
 public class MyModule extends XposedModule {
     private static final String tag_ = "UnityFPSUnlocker";
 
-    private int display_mode_id_ = -1;
+    private int preferred_display_mode_id_ = -1;
     private int delay_ = 10;
     private int fps_ = 90;
     private boolean mod_opcode_ = true;
@@ -46,24 +46,29 @@ public class MyModule extends XposedModule {
             log(Log.WARN, tag_, "Cannot read remote preferences", t);
         }
 
+        String cached_display_modes = "";
         if (settings != null) {
-            display_mode_id_ = getIntPref(settings, "display_mode_id", -1);
             delay_ = getIntPref(settings, "delay", 10);
             fps_ = getIntPref(settings, "fps", 90);
             mod_opcode_ = getBooleanPref(settings, "mod_opcode", true);
             scale_ = getFloatPref(settings, "scale", -1.0f);
 
-            display_mode_id_ = getIntPref(
-                    settings,
-                    package_name + "_per_app_display_mode_id",
-                    display_mode_id_);
+            // Per-app values still win over the global ones.
             delay_ = getIntPref(settings, package_name + "_per_app_delay", delay_);
             fps_ = getIntPref(settings, package_name + "_per_app_fps", fps_);
             mod_opcode_ = getBooleanPref(settings, package_name + "_per_app_mod_opcode", mod_opcode_);
             scale_ = getFloatPref(settings, package_name + "_per_app_scale", scale_);
+            cached_display_modes = getStringPref(
+                    settings,
+                    ScreenModeCache.KEY_MODES,
+                    "");
         } else {
             log(Log.WARN, tag_, "Cannot read settings, using default values");
         }
+
+        // Only the cached mode list is used here; the display service is never
+        // queried from the hooked application process.
+        preferred_display_mode_id_ = DisplayModes.matchId(cached_display_modes, fps_);
 
         boolean is_hooked = false;
         Constructor<?>[] constructors = unity_player_class.getDeclaredConstructors();
@@ -80,7 +85,7 @@ public class MyModule extends XposedModule {
             }
 
             if (match) {
-                final int target_display_mode_id = display_mode_id_;
+                final int target_display_mode_id = preferred_display_mode_id_;
                 try {
                     hook(constructor)
                             .setId("unity_player_constructor")
@@ -96,11 +101,15 @@ public class MyModule extends XposedModule {
 
                                 if (activity != null) {
                                     if (target_display_mode_id != -1) {
-                                        Window window = activity.getWindow();
-                                        WindowManager.LayoutParams params = window.getAttributes();
-                                        params.preferredDisplayModeId = target_display_mode_id;
-                                        window.setAttributes(params);
-                                        log(Log.INFO, tag_, "Set display mode to " + target_display_mode_id);
+                                        try {
+                                            Window window = activity.getWindow();
+                                            WindowManager.LayoutParams params = window.getAttributes();
+                                            params.preferredDisplayModeId = target_display_mode_id;
+                                            window.setAttributes(params);
+                                            log(Log.INFO, tag_, "Set display mode to " + target_display_mode_id);
+                                        } catch (Throwable t) {
+                                            log(Log.ERROR, tag_, "Failed to apply display mode", t);
+                                        }
                                     }
                                 } else {
                                     log(Log.WARN, tag_, "No activity instance found in arguments.");
@@ -118,7 +127,7 @@ public class MyModule extends XposedModule {
             log(Log.WARN, tag_, "No target constructors found.");
         }
 
-        log(Log.INFO, tag_, "display_mode_id: " + display_mode_id_ + " | delay: " + delay_ + " | fps: " + fps_ + " | mod_opcode: " + mod_opcode_ + " | scale: " + scale_);
+        log(Log.INFO, tag_, "display_mode_id: " + preferred_display_mode_id_ + " | delay: " + delay_ + " | fps: " + fps_ + " | mod_opcode: " + mod_opcode_ + " | scale: " + scale_);
         try {
             System.loadLibrary("UnityFPSUnlocker");
             HelloWorld(delay_, fps_, mod_opcode_, scale_);
@@ -131,6 +140,11 @@ public class MyModule extends XposedModule {
     public boolean onHotReloading(@NonNull HotReloadingParam param) {
         // Module loads native library; dynamic reload across generations is not supported.
         return false;
+    }
+
+    private static String getStringPref(SharedPreferences settings, String key, String fallback) {
+        Object val = settings.getAll().get(key);
+        return val instanceof String ? (String) val : fallback;
     }
 
     private static int getIntPref(SharedPreferences settings, String key, int fallback) {

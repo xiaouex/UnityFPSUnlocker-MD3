@@ -126,8 +126,7 @@ final class ModuleSettings {
         return preferences.contains(packageName + "_per_app_fps")
                 || preferences.contains(packageName + "_per_app_scale")
                 || preferences.contains(packageName + "_per_app_delay")
-                || preferences.contains(packageName + "_per_app_mod_opcode")
-                || preferences.contains(packageName + "_per_app_display_mode_id");
+                || preferences.contains(packageName + "_per_app_mod_opcode");
     }
 
     static void enablePerAppConfig(Context context, String packageName) {
@@ -145,7 +144,6 @@ final class ModuleSettings {
                 .remove(packageName + "_per_app_scale")
                 .remove(packageName + "_per_app_delay")
                 .remove(packageName + "_per_app_mod_opcode")
-                .remove(packageName + "_per_app_display_mode_id")
                 .apply();
     }
 
