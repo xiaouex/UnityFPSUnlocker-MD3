@@ -1,11 +1,9 @@
 name: Build Xposed Module (MD3)
 
-# 手动触发，或推送到 xposed 分支时触发
-# 注意：本文件必须放在 xposed 分支的 .github/workflows/ 目录下
+
 on:
   workflow_dispatch:
-  push:
-    branches: [ xposed ]
+
 
 permissions:
   contents: write
@@ -63,8 +61,14 @@ jobs:
               -Dabsl_DIR="$GITHUB_WORKSPACE/absl-install/$ABI/lib/cmake/absl"
             cmake --build "build/$ABI" --parallel
 
-            # 把 <ABI>.so 重命名为 libUnityFPSUnlocker.so（jniLibs 规范命名）
-            find "build/$ABI" -name "*.so" -exec cp {} "../so_out/$ABI/libUnityFPSUnlocker.so" \;
+
+            SO_PATH="libs/Release/$ABI.so"
+            if [ ! -f "$SO_PATH" ]; then
+              echo "ERROR: $SO_PATH not found!" >&2
+              exit 1
+            fi
+            # 重命名为 libUnityFPSUnlocker.so（jniLibs 规范命名）
+            cp "$SO_PATH" "../so_out/$ABI/libUnityFPSUnlocker.so"
           done
 
           echo "=== Build results ==="
