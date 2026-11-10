@@ -2,25 +2,8 @@ package io.github.hexstr.UnityFPSUnlocker;
 
 import android.content.SharedPreferences;
 
-import java.util.Map;
-
 final class SharedPreferenceCopier {
     private SharedPreferenceCopier() {
-    }
-
-    static void copyAll(
-            SharedPreferences source_preferences,
-            SharedPreferences destination_preferences,
-            String key_prefix) {
-        if (source_preferences == null || destination_preferences == null) {
-            return;
-        }
-
-        SharedPreferences.Editor editor = destination_preferences.edit();
-        for (Map.Entry<String, ?> entry : source_preferences.getAll().entrySet()) {
-            copyValue(editor, key_prefix + entry.getKey(), entry.getValue());
-        }
-        editor.apply();
     }
 
     static void copyValue(

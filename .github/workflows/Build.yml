@@ -3,7 +3,9 @@ name: Build Xposed Module (MD3)
 
 on:
   workflow_dispatch:
-
+    
+env:
+  BRANCH: ${{ github.ref_name }}
 
 permissions:
   contents: write
@@ -76,19 +78,21 @@ jobs:
 
           echo "=== Build results ==="
           ls -R ../so_out
-
-      - name: Checkout xposed branch
+          
+          
+      - name: Checkout  branch
         uses: actions/checkout@v4
         with:
-          ref: xposed
-          path: xposed
-
-      - name: Copy .so into xposed module
+          ref: ${{ env.BRANCH }}
+          path: ${{ env.BRANCH }}
+          
+      - name: Copy .so into the module
         run: |
           for ABI in arm64-v8a armeabi-v7a; do
-            mkdir -p "xposed/app/src/main/lib/$ABI"
-            cp "so_out/$ABI/libUnityFPSUnlocker.so" "xposed/app/src/main/lib/$ABI/"
+            mkdir -p "$BRANCH/app/src/main/lib/$ABI"
+            cp "so_out/$ABI/libUnityFPSUnlocker.so" "$BRANCH/app/src/main/lib/$ABI/"
           done
+          ls -lR $BRANCH/app/src/main/lib
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -103,34 +107,47 @@ jobs:
           KEY_ALIAS:         ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD:      ${{ secrets.KEY_PASSWORD }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > xposed/release.keystore
+          echo "$KEYSTORE_BASE64" | base64 -d > $BRANCH/release.keystore
           echo "KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
           echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
           echo "KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
 
       - name: Build signed APK
         run: |
-          cd xposed
+          cd $BRANCH
           chmod +x gradlew
           ./gradlew assembleRelease --stacktrace
+
+      - name: Verify native libs are packaged
+        run: |
+          set -euo pipefail
+          APK=$(find $BRANCH/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          echo "Checking: $APK"
+          LISTING=$(unzip -Z1 "$APK")
+          for ABI in arm64-v8a armeabi-v7a; do
+            echo "$LISTING" | grep -qx "lib/$ABI/libUnityFPSUnlocker.so" \
+              || { echo "ERROR: lib/$ABI/libUnityFPSUnlocker.so missing from $APK" >&2; exit 1; }
+          done
+          echo "=== packaged native libs ==="
+          echo "$LISTING" | grep '^lib/' || true
 
       - name: Verify signature
         run: |
           BUILD_TOOLS="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n1)"
-          APK=$(find xposed/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          APK=$(find $BRANCH/app/build/outputs/apk/release -name "*.apk" | head -n 1)
           echo "Verifying: $APK"
           "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
 
       - name: Read versionName and rename APK
         id: ver
         run: |
-          VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' xposed/app/build.gradle | head -n 1)
+          VERSION=$(grep -oP 'versionName\s*=\s*"\K[^"]+' $BRANCH/app/build.gradle | head -n 1)
           if [ -z "$VERSION" ]; then
             echo "versionName not found in app/build.gradle" >&2
             exit 1
           fi
           RELEASE_NAME="V${VERSION}-MD3"
-          APK=$(find xposed/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          APK=$(find $BRANCH/app/build/outputs/apk/release -name "*.apk" | head -n 1)
           APK_NAME="UnityFPSUnlocker-${RELEASE_NAME}.apk"
           cp "$APK" "$APK_NAME"
           echo "release_name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"

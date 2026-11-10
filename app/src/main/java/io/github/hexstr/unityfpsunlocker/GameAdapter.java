@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -67,12 +66,6 @@ final class GameAdapter extends ListAdapter<UnityGameScanner.Game, GameAdapter.G
         super.onViewRecycled(holder);
     }
 
-    void refreshValues() {
-        if (getItemCount() > 0) {
-            notifyItemRangeChanged(0, getItemCount());
-        }
-    }
-
     static final class GameViewHolder extends RecyclerView.ViewHolder {
         private final ItemGameBinding binding;
         private final Handler handler = new Handler(Looper.getMainLooper());
@@ -85,7 +78,7 @@ final class GameAdapter extends ListAdapter<UnityGameScanner.Game, GameAdapter.G
             super(binding.getRoot());
             this.binding = binding;
 
-            binding.gameFpsInput.addTextChangedListener(new AfterTextWatcher() {
+            binding.gameFpsInput.addTextChangedListener(new InputFields.AfterTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable editable) {
                     if (!binding_values) {
@@ -93,7 +86,7 @@ final class GameAdapter extends ListAdapter<UnityGameScanner.Game, GameAdapter.G
                     }
                 }
             });
-            binding.gameResolutionInput.addTextChangedListener(new AfterTextWatcher() {
+            binding.gameResolutionInput.addTextChangedListener(new InputFields.AfterTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable editable) {
                     if (!binding_values) {
@@ -101,7 +94,7 @@ final class GameAdapter extends ListAdapter<UnityGameScanner.Game, GameAdapter.G
                     }
                 }
             });
-            binding.gameDelayInput.addTextChangedListener(new AfterTextWatcher() {
+            binding.gameDelayInput.addTextChangedListener(new InputFields.AfterTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable editable) {
                     if (!binding_values) {
@@ -225,7 +218,7 @@ final class GameAdapter extends ListAdapter<UnityGameScanner.Game, GameAdapter.G
                 return;
             }
 
-            Integer fps = parsePositiveInt(textOf(binding.gameFpsInput));
+            Integer fps = InputFields.parsePositiveInt(InputFields.textOf(binding.gameFpsInput));
             if (fps == null) {
                 if (show_errors) {
                     binding.gameFpsLayout.setError(
@@ -236,7 +229,7 @@ final class GameAdapter extends ListAdapter<UnityGameScanner.Game, GameAdapter.G
                 ModuleSettings.setPerAppFps(context, package_name, fps);
             }
 
-            Float scale = parseScale(textOf(binding.gameResolutionInput));
+            Float scale = InputFields.parseScale(InputFields.textOf(binding.gameResolutionInput));
             if (scale == null) {
                 if (show_errors) {
                     binding.gameResolutionLayout.setError(
@@ -247,7 +240,8 @@ final class GameAdapter extends ListAdapter<UnityGameScanner.Game, GameAdapter.G
                 ModuleSettings.setPerAppScale(context, package_name, scale);
             }
 
-            Integer delay = parseNonNegativeInt(textOf(binding.gameDelayInput));
+            Integer delay =
+                    InputFields.parseNonNegativeInt(InputFields.textOf(binding.gameDelayInput));
             if (delay == null) {
                 if (show_errors) {
                     binding.gameDelayLayout.setError(
@@ -273,50 +267,6 @@ final class GameAdapter extends ListAdapter<UnityGameScanner.Game, GameAdapter.G
                         binding.getRoot().getWindowToken(),
                         0);
             }
-        }
-
-        private static String textOf(android.widget.EditText field) {
-            return field.getText() == null ? "" : field.getText().toString().trim();
-        }
-
-        private static Integer parsePositiveInt(String text) {
-            try {
-                int value = Integer.parseInt(text);
-                return value > 0 ? value : null;
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-
-        private static Integer parseNonNegativeInt(String text) {
-            try {
-                int value = Integer.parseInt(text);
-                return value >= 0 ? value : null;
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-
-        private static Float parseScale(String text) {
-            try {
-                float value = Float.parseFloat(text);
-                if (!Float.isFinite(value)) {
-                    return null;
-                }
-                return value == -1.0f || value > 0.0f ? value : null;
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-    }
-
-    private abstract static class AfterTextWatcher implements TextWatcher {
-        @Override
-        public void beforeTextChanged(CharSequence text, int start, int count, int after) {
-        }
-
-        @Override
-        public void onTextChanged(CharSequence text, int start, int before, int count) {
         }
     }
 }
