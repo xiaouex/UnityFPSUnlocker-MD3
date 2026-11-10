@@ -38,6 +38,11 @@
     <string name="desktop_icon_restored">桌面图标已恢复</string>
     <string name="hide_desktop_icon_failed">设置失败，请重试</string>
 
+    <string name="refresh_display_info">刷新屏幕信息</string>
+    <string name="refresh_display_info_failed">未能读取屏幕档位信息</string>
+    <string name="refresh_display_info_result">已刷新：%1$d 个档位，%2$d FPS 匹配 %3$s</string>
+    <string name="refresh_display_info_no_match">已刷新：%1$d 个档位，未找到与 %2$d FPS 匹配的档位</string>
+
     <string name="config_title">游戏配置</string>
     <string name="config_scanning">正在读取 LSPosed 作用域…</string>
     <string name="config_empty">作用域内没有 Unity 游戏</string>

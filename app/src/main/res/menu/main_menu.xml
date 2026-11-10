@@ -2,6 +2,10 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_refresh_display_info"
+        android:title="@string/refresh_display_info"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_hide_desktop_icon"
         android:checkable="true"
         android:title="@string/hide_desktop_icon"

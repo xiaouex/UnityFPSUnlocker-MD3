@@ -21,6 +21,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import java.util.List;
+
 import io.github.hexstr.UnityFPSUnlocker.databinding.ActivityMainBinding;
 
 public class MainActivity extends AppCompatActivity {
@@ -39,6 +41,8 @@ public class MainActivity extends AppCompatActivity {
         configureWindow();
 
         Prefs.init(this);
+        // Screen modes are queried only once; later launches reuse the cache.
+        ScreenModeCache.ensureCached(this);
         UnityGameScanner.get(this).startScan();
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -71,17 +75,27 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem item = menu.findItem(R.id.action_hide_desktop_icon);
-        if (item != null) {
-            boolean home_selected = selected_tab == R.id.nav_home;
-            item.setVisible(home_selected);
-            item.setChecked(DesktopIconController.isHidden(this));
+        boolean home_selected = selected_tab == R.id.nav_home;
+
+        MenuItem hide_icon_item = menu.findItem(R.id.action_hide_desktop_icon);
+        if (hide_icon_item != null) {
+            hide_icon_item.setVisible(home_selected);
+            hide_icon_item.setChecked(DesktopIconController.isHidden(this));
+        }
+
+        MenuItem refresh_item = menu.findItem(R.id.action_refresh_display_info);
+        if (refresh_item != null) {
+            refresh_item.setVisible(home_selected);
         }
         return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_refresh_display_info) {
+            refreshScreenModes();
+            return true;
+        }
         if (item.getItemId() == R.id.action_hide_desktop_icon) {
             boolean hide = !DesktopIconController.isHidden(this);
             if (!DesktopIconController.setHidden(this, hide)) {
@@ -100,6 +114,32 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    /**
+     * Re-reads the supported display modes and stores them for the hook. The
+     * toast shows which mode the current global FPS would resolve to.
+     */
+    private void refreshScreenModes() {
+        List<DisplayModes.Mode> modes = ScreenModeCache.refresh(this);
+        if (modes.isEmpty()) {
+            Toast.makeText(
+                    this,
+                    R.string.refresh_display_info_failed,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int fps = ModuleSettings.getGlobalFps(this);
+        DisplayModes.Mode matched = DisplayModes.match(modes, fps);
+        String message = matched == null
+                ? getString(R.string.refresh_display_info_no_match, modes.size(), fps)
+                : getString(
+                        R.string.refresh_display_info_result,
+                        modes.size(),
+                        fps,
+                        matched.describe());
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 
     private void configureWindow() {
