@@ -77,16 +77,19 @@ jobs:
           echo "=== Build results ==="
           ls -R ../so_out
           
-          for ABI in arm64-v8a armeabi-v7a; do
-          mkdir -p "test/app/src/main/lib/$ABI"
-          cp "so_out/$ABI/libUnityFPSUnlocker.so" "test/app/src/main/lib/$ABI/"
-          done
-
+          
       - name: Checkout test branch
         uses: actions/checkout@v4
         with:
           ref: test
           path: test
+          
+      - name: Copy .so into xposed module
+        run: |
+          for ABI in arm64-v8a armeabi-v7a; do
+            mkdir -p "xposed/app/src/main/lib/$ABI"
+            cp "so_out/$ABI/libUnityFPSUnlocker.so" "xposed/app/src/main/lib/$ABI/"
+          done
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
