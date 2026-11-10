@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -73,7 +72,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void bindListeners() {
-        binding.fpsInput.addTextChangedListener(new AfterTextWatcher() {
+        binding.fpsInput.addTextChangedListener(new InputFields.AfterTextWatcher() {
             @Override
             public void afterTextChanged(Editable editable) {
                 if (!binding_values) {
@@ -81,7 +80,7 @@ public class HomeFragment extends Fragment {
                 }
             }
         });
-        binding.resolutionInput.addTextChangedListener(new AfterTextWatcher() {
+        binding.resolutionInput.addTextChangedListener(new InputFields.AfterTextWatcher() {
             @Override
             public void afterTextChanged(Editable editable) {
                 if (!binding_values) {
@@ -89,7 +88,7 @@ public class HomeFragment extends Fragment {
                 }
             }
         });
-        binding.delayInput.addTextChangedListener(new AfterTextWatcher() {
+        binding.delayInput.addTextChangedListener(new InputFields.AfterTextWatcher() {
             @Override
             public void afterTextChanged(Editable editable) {
                 if (!binding_values) {
@@ -135,7 +134,7 @@ public class HomeFragment extends Fragment {
         }
         handler.removeCallbacks(save_runnable);
 
-        Integer fps = parsePositiveInt(textOf(binding.fpsInput));
+        Integer fps = InputFields.parsePositiveInt(InputFields.textOf(binding.fpsInput));
         if (fps == null) {
             if (show_errors) {
                 binding.fpsLayout.setError(getString(R.string.error_fps));
@@ -145,7 +144,7 @@ public class HomeFragment extends Fragment {
             ModuleSettings.setGlobalFps(requireContext(), fps);
         }
 
-        Float scale = parseScale(textOf(binding.resolutionInput));
+        Float scale = InputFields.parseScale(InputFields.textOf(binding.resolutionInput));
         if (scale == null) {
             if (show_errors) {
                 binding.resolutionLayout.setError(getString(R.string.error_resolution));
@@ -155,7 +154,7 @@ public class HomeFragment extends Fragment {
             ModuleSettings.setGlobalScale(requireContext(), scale);
         }
 
-        Integer delay = parseNonNegativeInt(textOf(binding.delayInput));
+        Integer delay = InputFields.parseNonNegativeInt(InputFields.textOf(binding.delayInput));
         if (delay == null) {
             if (show_errors) {
                 binding.delayLayout.setError(getString(R.string.error_delay));
@@ -221,40 +220,6 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private static String textOf(android.widget.EditText field) {
-        return field.getText() == null ? "" : field.getText().toString().trim();
-    }
-
-    private static Integer parsePositiveInt(String text) {
-        try {
-            int value = Integer.parseInt(text);
-            return value > 0 ? value : null;
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
-    private static Integer parseNonNegativeInt(String text) {
-        try {
-            int value = Integer.parseInt(text);
-            return value >= 0 ? value : null;
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
-    private static Float parseScale(String text) {
-        try {
-            float value = Float.parseFloat(text);
-            if (!Float.isFinite(value)) {
-                return null;
-            }
-            return value == -1.0f || value > 0.0f ? value : null;
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
     @Override
     public void onPause() {
         if (binding != null) {
@@ -272,15 +237,5 @@ public class HomeFragment extends Fragment {
         }
         binding = null;
         super.onDestroyView();
-    }
-
-    private abstract static class AfterTextWatcher implements TextWatcher {
-        @Override
-        public void beforeTextChanged(CharSequence text, int start, int count, int after) {
-        }
-
-        @Override
-        public void onTextChanged(CharSequence text, int start, int before, int count) {
-        }
     }
 }
