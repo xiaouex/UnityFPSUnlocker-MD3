@@ -50,6 +50,8 @@ jobs:
           cd zygisk_module
           NDK="${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_HOME}}"
 
+          mkdir -p ../so_out/arm64-v8a ../so_out/armeabi-v7a
+
           # 该分支 CMakeLists 会把 so 输出为 libs/Release/<ABI>.so（无 lib 前缀）
           for ABI in arm64-v8a armeabi-v7a; do
             echo "=== Building libUnityFPSUnlocker.so for $ABI ==="
@@ -61,7 +63,8 @@ jobs:
               -Dabsl_DIR="$GITHUB_WORKSPACE/absl-install/$ABI/lib/cmake/absl"
             cmake --build "build/$ABI" --parallel
 
-
+            # 该分支 CMakeLists 设置了 LIBRARY_OUTPUT_PATH = ${PROJECT_SOURCE_DIR}/libs/Release/
+            # 且 OUTPUT_NAME = ${ANDROID_ABI}，产物路径为 libs/Release/<ABI>.so（无 lib 前缀）
             SO_PATH="libs/Release/$ABI.so"
             if [ ! -f "$SO_PATH" ]; then
               echo "ERROR: $SO_PATH not found!" >&2
