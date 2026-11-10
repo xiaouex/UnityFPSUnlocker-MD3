@@ -33,18 +33,31 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK and NDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: "platforms;android-37,build-tools;37.0.0,cmake;3.22.1,ndk;27.2.12479018"
-          accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: true
-
-      - name: Force accept Android SDK licenses
+      - name: Install Android SDK packages non-interactively
         shell: bash
         run: |
           set -euo pipefail
-          yes | /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager --sdk_root="${ANDROID_SDK_ROOT}" --licenses >/dev/null 2>&1 || true
+
+          mkdir -p "${ANDROID_SDK_ROOT}"
+          ls -la "${ANDROID_SDK_ROOT}" || true
+
+          SDKMANAGER="${ANDROID_SDK_ROOT}/cmdline-tools/16.0/bin/sdkmanager"
+
+          if [[ ! -x "${SDKMANAGER}" ]]; then
+            echo "SDKMANAGER not found at ${SDKMANAGER}" >&2
+            echo "Installed cmdline-tools path under /usr/local/lib/android/sdk/cmdline-tools/16.0" >&2
+            find /usr/local/lib/android/sdk -maxdepth 3 -type f -name sdkmanager 2>/dev/null | head >&2
+            exit 1
+          fi
+
+          yes | "${SDKMANAGER}" --sdk_root="${ANDROID_SDK_ROOT}" --licenses >/dev/null 2>&1 || true
+
+          # 安装需要的平台/NDK/CMake
+          "${SDKMANAGER}" --sdk_root="${ANDROID_SDK_ROOT}" --install \
+            "platforms;android-37" \
+            "build-tools;37.0.0" \
+            "cmake;3.22.1" \
+            "ndk;27.2.12479018"
 
       - name: Build libUnityFPSUnlocker.so for arm64-v8a and armeabi-v7a
         shell: bash
@@ -149,10 +162,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          # 不创建新 tag；要求仓库里已经存在 MD3 tag
           git fetch --force origin "refs/tags/${TAG_NAME}:refs/tags/${TAG_NAME}" || true
           if ! git rev-parse --verify "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
-            echo "Tag ${TAG_NAME} does not exist. Please create the MD3 tag manually first, and do not let the workflow create a new tag." >&2
+            echo "Tag ${TAG_NAME} does not exist. Please create the MD3 tag manually first." >&2
             exit 1
           fi
 
